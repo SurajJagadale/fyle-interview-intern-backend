@@ -7,6 +7,7 @@ from core.models.students import Student
 from sqlalchemy.types import Enum as BaseEnum
 
 
+
 class GradeEnum(str, enum.Enum):
     A = 'A'
     B = 'B'
@@ -37,7 +38,7 @@ class Assignment(db.Model):
     @classmethod
     def filter(cls, *criterion):
         db_query = db.session.query(cls)
-        return db_query.filter(*criterion)
+        return db_query.filter (*criterion)
 
     @classmethod
     def get_by_id(cls, _id):
@@ -67,6 +68,7 @@ class Assignment(db.Model):
         assertions.assert_valid(assignment.content is not None, 'assignment with empty content cannot be submitted')
 
         assignment.teacher_id = teacher_id
+        assignment.state = AssignmentStateEnum.SUBMITTED
         db.session.flush()
 
         return assignment
@@ -90,4 +92,15 @@ class Assignment(db.Model):
 
     @classmethod
     def get_assignments_by_teacher(cls, teacher_id):
-        return cls.filter(cls.teacher_id == teacher_id).all()
+        return cls.filter(cls.teacher_id == teacher_id).all() 
+
+    @classmethod
+    def get_assignments_for_principal(cls):
+        valid_states = {AssignmentStateEnum.SUBMITTED, AssignmentStateEnum.GRADED}
+        return cls.filter(cls.state.in_(valid_states)).all()
+    
+    @classmethod
+    def is_draft(cls, _id):
+        assignment = Assignment.get_by_id(_id)
+        assertions.assert_found(assignment, 'No assignment with this id was found')
+        return True if assignment.state == AssignmentStateEnum.DRAFT else False

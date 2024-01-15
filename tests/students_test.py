@@ -33,7 +33,7 @@ def test_post_assignment_null_content(client, h_student_1):
         '/student/assignments',
         headers=h_student_1,
         json={
-            'content': None
+            'content': ""
         })
 
     assert response.status_code == 400

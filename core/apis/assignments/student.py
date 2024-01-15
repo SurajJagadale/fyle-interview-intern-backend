@@ -23,12 +23,16 @@ def list_assignments(p):
 def upsert_assignment(p, incoming_payload):
     """Create or Edit an assignment"""
     assignment = AssignmentSchema().load(incoming_payload)
-    assignment.student_id = p.student_id
+    print()
+    if assignment.content != "":
+        assignment.student_id = p.student_id
 
-    upserted_assignment = Assignment.upsert(assignment)
-    db.session.commit()
-    upserted_assignment_dump = AssignmentSchema().dump(upserted_assignment)
-    return APIResponse.respond(data=upserted_assignment_dump)
+        upserted_assignment = Assignment.upsert(assignment)
+        db.session.commit()
+        upserted_assignment_dump = AssignmentSchema().dump(upserted_assignment)
+        return APIResponse.respond(data=upserted_assignment_dump)
+    return APIResponse.respond_error(data={"error": "FyleError","message": "content field should not be empty"}, status_code=400)
+
 
 
 @student_assignments_resources.route('/assignments/submit', methods=['POST'], strict_slashes=False)
@@ -37,12 +41,13 @@ def upsert_assignment(p, incoming_payload):
 def submit_assignment(p, incoming_payload):
     """Submit an assignment"""
     submit_assignment_payload = AssignmentSubmitSchema().load(incoming_payload)
-
-    submitted_assignment = Assignment.submit(
-        _id=submit_assignment_payload.id,
-        teacher_id=submit_assignment_payload.teacher_id,
-        auth_principal=p
-    )
-    db.session.commit()
-    submitted_assignment_dump = AssignmentSchema().dump(submitted_assignment)
-    return APIResponse.respond(data=submitted_assignment_dump)
+    if Assignment.is_draft(submit_assignment_payload.id):
+        submitted_assignment = Assignment.submit(
+            _id=submit_assignment_payload.id,
+            teacher_id=submit_assignment_payload.teacher_id,
+            auth_principal=p
+        )
+        db.session.commit()
+        submitted_assignment_dump = AssignmentSchema().dump(submitted_assignment)
+        return APIResponse.respond(data=submitted_assignment_dump)
+    return APIResponse.respond_error(data={"error": "FyleError","message": "only a draft assignment can be submitted"}, status_code=400)
